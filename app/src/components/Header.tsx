@@ -39,7 +39,7 @@ export function Header() {
 
   return (
     <>
-      <header className={`header ${scrolled ? 'is-scrolled' : ''}`}>
+      <header className={`header ${scrolled ? 'is-scrolled' : pathname === '/' ? 'is-over on-dark' : ''}`}>
         <div className="wrap">
           <Link to="/" className="header-mark" aria-label="Sessa, home">
             <Wordmark small />

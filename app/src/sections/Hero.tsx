@@ -1,66 +1,88 @@
-import { useRef, type CSSProperties } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { m, useMotionTemplate, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { animate, m, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { VENUE } from '../data/sessa';
 import { useClock } from '../lib/clock';
 import { clock } from '../lib/time';
 import { media, srcSet } from '../lib/media';
-import { useMedia } from '../lib/useMedia';
 import { Wordmark } from '../components/Wordmark';
-import { arrival } from '../components/Curtain';
+import { Rise, Words } from '../components/Reveal';
+import { arrival, wroteMark } from '../components/Curtain';
+
+const EASE = [0.2, 0.75, 0.15, 1] as const;
 
 // Opacity goes through a CSS variable: handed over directly, scroll-linked
 // opacity gets accelerated by the browser and lands on the wrong values.
 const vo = (v: unknown) => ({ ['--o']: v }) as unknown as CSSProperties;
 
-// framed: where the picture is cropped while it hangs on the wall; position: once it fills the screen.
 const SHOTS = {
   day: {
     name: 'room-day',
     widths: [900, 1600, 2000],
     alt: 'The room by day: butter-yellow walls, long wooden tables, a candle lit on the shelf, Railton Road through the windows',
-    framed: '64% 50%',
-    position: '52% 50%',
+    position: '58% 45%',
   },
   evening: {
     name: 'martini',
     widths: [900, 1600, 1920],
     alt: 'A martini being finished with a twist of lemon at the bar',
-    framed: '24% 50%',
-    position: '36% 45%',
+    position: '30% 40%',
   },
 };
 
 /*
- * The photograph starts out hung on the yellow wall, in front of the
- * wordmark. Scroll, and it opens until you're standing in the room.
+ * The room fills the screen. On the first visit the wordmark written on the
+ * shutter drops into place along the bottom as the shutter lifts.
  */
 export function Hero() {
   const { now } = useClock();
   const ref = useRef<HTMLElement>(null);
+  const markRef = useRef<HTMLSpanElement>(null);
   const reduce = useReducedMotion();
-  const narrow = useMedia('(max-width: 799px)');
   const shot = now.open && now.min >= 17 * 60 ? SHOTS.evening : SHOTS.day;
+  const [start] = useState(arrival);
+  const [flying, setFlying] = useState(() => wroteMark() && !reduce);
 
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start start', 'end end'] });
-  // Where the picture hangs on the wall to begin with: top, sides, bottom (as % of the screen).
-  const [t0, s0, b0] = narrow ? [27, 6, 22] : [15, 35, 11];
-  const frame = { top: `${t0}%`, left: `${s0}%`, width: `${100 - 2 * s0}%`, height: `${100 - t0 - b0}%` };
-  // The box itself grows, so the photograph is always composed for the shape it's in.
-  const top = useTransform(p, [0, 0.62], [t0, 0], { clamp: true });
-  const side = useTransform(p, [0, 0.62], [s0, 0], { clamp: true });
-  const bottom = useTransform(p, [0, 0.62], [b0, 0], { clamp: true });
-  const boxTop = useMotionTemplate`${top}%`;
-  const boxLeft = useMotionTemplate`${side}%`;
-  const boxWidth = useTransform(side, (v) => `${100 - 2 * v}%`);
-  const boxHeight = useTransform([top, bottom], ([t, b]: number[]) => `${100 - t - b}%`);
-  const objectPosition = useTransform(p, [0, 0.62], [shot.framed, shot.position], { clamp: true });
-  const scale = useTransform(p, [0, 0.62], [1.06, 1]);
-  const markY = useTransform(p, [0, 0.5], ['0%', '-30%']);
-  const fade = useTransform(p, [0, 0.25], [1, 0]);
-  const over = useTransform(p, [0.6, 0.85], [0, 1]);
-  const overY = useTransform(p, [0.6, 0.85], [40, 0]);
-  const shade = useTransform(p, [0.45, 0.8], [0, 1]);
+  // The wordmark's flight from the shutter to the foot of the photograph.
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const ms = useMotionValue(1);
+  useLayoutEffect(() => {
+    if (!flying) return;
+    const from = document.querySelector<HTMLElement>('.curtain-mark');
+    const to = markRef.current;
+    if (!from || !to || window.scrollY > 10) return setFlying(false);
+    const a = from.getBoundingClientRect();
+    const b = to.getBoundingClientRect();
+    mx.set(a.left + a.width / 2 - (b.left + b.width / 2));
+    my.set(a.top + a.height / 2 - (b.top + b.height / 2));
+    ms.set(a.width / b.width);
+    const options = { duration: 1.15, ease: [0.7, 0, 0.2, 1] as const, delay: start };
+    const swap = window.setTimeout(() => (from.style.opacity = '0'), start * 1000);
+    const land = window.setTimeout(() => setFlying(false), (start + options.duration) * 1000 + 50);
+    const runs = [animate(mx, 0, options), animate(my, 0, options), animate(ms, 1, options)];
+    return () => {
+      window.clearTimeout(swap);
+      window.clearTimeout(land);
+      runs.forEach((r) => r.stop());
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Leaving: the photograph drifts slower than the page, the words lift away.
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+  const photoY = useTransform(p, [0, 1], ['0%', '28%']);
+  const copyY = useTransform(p, [0, 1], ['0%', '-18%']);
+  const copyO = useTransform(p, [0, 0.6], [1, 0]);
+
+  // A little give under the pointer, so the room feels like a room.
+  const px = useSpring(0, { stiffness: 50, damping: 20 });
+  const py = useSpring(0, { stiffness: 50, damping: 20 });
+  const onMove = (e: PointerEvent) => {
+    if (reduce || e.pointerType !== 'mouse') return;
+    const r = e.currentTarget.getBoundingClientRect();
+    px.set(((e.clientX - r.left) / r.width - 0.5) * -18);
+    py.set(((e.clientY - r.top) / r.height - 0.5) * -12);
+  };
 
   const status = now.open ? (
     <>
@@ -71,72 +93,49 @@ export function Hero() {
       <strong>Closed now.</strong> {now.next}.
     </>
   );
+  const menuLabel = now.menu === 'evening' ? 'Tonight’s menu' : now.menu === 'daytime' ? 'Today’s menu' : 'The menus';
 
   return (
-    <section ref={ref} className={`hero ${reduce ? 'still' : ''}`} aria-label="Sessa">
-      <div className="hero-stage">
-        <m.div className="hero-mark" style={reduce ? undefined : { y: markY }}>
-          <h1>
-            <span className="wm">
+    <section ref={ref} className="hero on-dark" aria-label="Sessa" onPointerMove={onMove}>
+      <m.div className="hero-photo" style={reduce ? undefined : { y: photoY }}>
+        <m.img
+          src={media(`${shot.name}-1600.jpg`)}
+          srcSet={srcSet(shot.name, shot.widths)}
+          sizes="100vw"
+          alt={shot.alt}
+          fetchPriority="high"
+          style={reduce ? { objectPosition: shot.position } : { objectPosition: shot.position, x: px, y: py }}
+          initial={reduce ? false : { scale: 1.16 }}
+          animate={{ scale: reduce ? 1 : 1.04 }}
+          transition={{ duration: 2.6, ease: EASE, delay: start }}
+        />
+      </m.div>
+
+      <m.div className={`hero-copy fade-var ${flying ? 'is-flying' : ''}`} style={reduce ? undefined : { ...vo(copyO), y: copyY }}>
+        <div className="wrap">
+          <div className="hero-row">
+            <h2>
+              <Words text="Coffee from nine," delay={start + 0.55} />
+              <br />
+              <Words text="martinis till late." italicFrom={0} delay={start + 0.7} />
+            </h2>
+            <Rise className="hero-actions" delay={start + 0.9}>
+              <p className="status">{status}</p>
+              <a className="pill pill-solid" href={VENUE.bookHref} target="_blank" rel="noopener">
+                Book a table
+              </a>
+              <Link className="pill" to="/menus">
+                {menuLabel}
+              </Link>
+            </Rise>
+          </div>
+          <h1 className="hero-mark">
+            <m.span ref={markRef} className="wm" style={{ x: mx, y: my, scale: ms }}>
               <Wordmark label="Sessa" />
-            </span>
+            </m.span>
           </h1>
-        </m.div>
-
-        <m.div
-          className="hero-photo"
-          style={
-            reduce
-              ? frame
-              : { top: boxTop, left: boxLeft, width: boxWidth, height: boxHeight, ['--shade' as string]: shade }
-          }
-        >
-          <m.img
-            src={media(`${shot.name}-1600.jpg`)}
-            srcSet={srcSet(shot.name, shot.widths)}
-            sizes="100vw"
-            alt={shot.alt}
-            style={reduce ? { objectPosition: shot.framed } : { objectPosition, scale }}
-            initial={reduce ? false : { clipPath: 'inset(100% 0% 0% 0%)' }}
-            animate={{ clipPath: 'inset(0% 0% 0% 0%)' }}
-            transition={{ duration: 1.1, ease: [0.2, 0.75, 0.15, 1], delay: arrival() }}
-            fetchPriority="high"
-          />
-        </m.div>
-
-        <m.p className="hero-side left sc fade-var" style={reduce ? undefined : vo(fade)}>
-          {VENUE.line}
-          <br />
-          {VENUE.street}
-        </m.p>
-        <m.div className="hero-side right fade-var" style={reduce ? undefined : vo(fade)}>
-          <p className="status">{status}</p>
-        </m.div>
-        {!reduce && (
-          <m.p className="hero-hint sc fade-var" style={vo(fade)}>
-            Come in
-          </m.p>
-        )}
-
-        {!reduce && (
-          <m.div className="hero-over on-dark fade-var" style={{ ...vo(over), y: overY }}>
-            <div className="wrap">
-              <h2>
-                Coffee from nine, <em>martinis till late.</em>
-              </h2>
-              <div className="row">
-                <a className="pill pill-solid" href={VENUE.bookHref} target="_blank" rel="noopener">
-                  Book a table
-                </a>
-                <Link className="pill" to="/menus">
-                  {now.menu === 'evening' ? 'Tonight’s menu' : now.menu === 'daytime' ? 'Today’s menu' : 'The menus'}
-                </Link>
-                <p className="status">{status}</p>
-              </div>
-            </div>
-          </m.div>
-        )}
-      </div>
+        </div>
+      </m.div>
     </section>
   );
 }
