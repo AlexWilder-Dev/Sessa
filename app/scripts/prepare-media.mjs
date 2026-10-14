@@ -1,6 +1,11 @@
 // One-off: trims the logo marks into mask images, resizes the painting and
 // the hero photo, and makes the favicons. Run with `npm run media`.
 import sharp from 'sharp';
+import { chdir } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+// Paths below are relative to the app folder.
+chdir(fileURLToPath(new URL('..', import.meta.url)));
 
 const src = 'media-src';
 const dir = 'public/media';

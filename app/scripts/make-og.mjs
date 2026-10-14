@@ -4,6 +4,11 @@
 // still show it). Run with `npm run og`.
 import sharp from 'sharp';
 import { statSync } from 'node:fs';
+import { chdir } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+// Paths below are relative to the app folder.
+chdir(fileURLToPath(new URL('..', import.meta.url)));
 
 const W = 1200;
 const H = 630;

@@ -4,11 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "og": "node scripts/make-og.mjs",
-    "media": "node scripts/prepare-media.mjs"
+    "dev": "vite app",
+    "build": "node app/scripts/clean-site.mjs && tsc -p app && vite build app",
+    "preview": "vite preview app",
+    "media": "node app/scripts/prepare-media.mjs",
+    "og": "node app/scripts/make-og.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

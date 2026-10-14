@@ -31,22 +31,29 @@ Add `?at=` to the URL, e.g.
 ## Changing the menus
 
 Everything (hours, kitchen times, dishes, drinks and all the bottles) lives in
-[`src/data/sessa.ts`](src/data/sessa.ts). A menu change is a one-file edit.
+[`app/src/data/sessa.ts`](app/src/data/sessa.ts). A menu change is a one-file
+edit, then `npm run build` and commit.
 
-## Running it
+## How it's laid out and deployed
+
+GitHub Pages serves the root of the deploy branch, so:
+
+- `app/` is the source (Vite + React + TypeScript + Framer Motion, HashRouter).
+- The repository root holds the built site (`index.html`, `assets/`, `media/`,
+  `og.jpg`, icons). `npm run build` rewrites it; commit the result to publish.
+
+Asset paths are relative, so the site works whatever the repository is called.
+The link-preview tags in `app/index.html` point at
+`https://alexwilder-dev.github.io/sessa-herne-hill/`, so previews show the
+image once the repository is named `sessa-herne-hill`.
 
 ```sh
 npm install
 npm run dev       # local dev server
-npm run build     # production build into dist/
-npm run media     # regenerate wordmarks, favicons and resized photos from media-src/
-npm run og        # regenerate public/og.jpg (1200×630) for link previews
+npm run build     # build into the repository root
+npm run media     # regenerate wordmarks, favicons and resized photos from app/media-src/
+npm run og        # regenerate app/public/og.jpg (1200×630) for link previews
 ```
-
-Vite + React + TypeScript + Framer Motion, HashRouter, deployed to GitHub Pages
-at the base path `/sessa-herne-hill/` (the workflow in `.github/workflows`
-deploys `main`; the repository needs to be named `sessa-herne-hill` for that
-path to match).
 
 ## Credits
 
