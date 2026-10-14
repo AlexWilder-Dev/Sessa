@@ -7,20 +7,26 @@ import { clock } from '../lib/time';
 import { media, srcSet } from '../lib/media';
 import { useMedia } from '../lib/useMedia';
 import { Wordmark } from '../components/Wordmark';
+import { arrival } from '../components/Curtain';
 
 // Opacity goes through a CSS variable: handed over directly, scroll-linked
 // opacity gets accelerated by the browser and lands on the wrong values.
 const vo = (v: unknown) => ({ ['--o']: v }) as unknown as CSSProperties;
 
+// framed: where the picture is cropped while it hangs on the wall; position: once it fills the screen.
 const SHOTS = {
   day: {
     name: 'room-day',
+    widths: [900, 1600, 2000],
     alt: 'The room by day: butter-yellow walls, long wooden tables, a candle lit on the shelf, Railton Road through the windows',
+    framed: '64% 50%',
     position: '52% 50%',
   },
   evening: {
     name: 'martini',
+    widths: [900, 1600, 1920],
     alt: 'A martini being finished with a twist of lemon at the bar',
+    framed: '24% 50%',
     position: '36% 45%',
   },
 };
@@ -38,13 +44,18 @@ export function Hero() {
 
   const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start start', 'end end'] });
   // Where the picture hangs on the wall to begin with: top, sides, bottom (as % of the screen).
-  const [t0, s0, b0] = narrow ? [30, 6, 15] : [15, 35, 11];
-  const from = `inset(${t0}% ${s0}% ${b0}% ${s0}%)`;
+  const [t0, s0, b0] = narrow ? [27, 6, 22] : [15, 35, 11];
+  const frame = { top: `${t0}%`, left: `${s0}%`, width: `${100 - 2 * s0}%`, height: `${100 - t0 - b0}%` };
+  // The box itself grows, so the photograph is always composed for the shape it's in.
   const top = useTransform(p, [0, 0.62], [t0, 0], { clamp: true });
   const side = useTransform(p, [0, 0.62], [s0, 0], { clamp: true });
   const bottom = useTransform(p, [0, 0.62], [b0, 0], { clamp: true });
-  const clip = useMotionTemplate`inset(${top}% ${side}% ${bottom}% ${side}%)`;
-  const scale = useTransform(p, [0, 0.62], [1.22, 1]);
+  const boxTop = useMotionTemplate`${top}%`;
+  const boxLeft = useMotionTemplate`${side}%`;
+  const boxWidth = useTransform(side, (v) => `${100 - 2 * v}%`);
+  const boxHeight = useTransform([top, bottom], ([t, b]: number[]) => `${100 - t - b}%`);
+  const objectPosition = useTransform(p, [0, 0.62], [shot.framed, shot.position], { clamp: true });
+  const scale = useTransform(p, [0, 0.62], [1.06, 1]);
   const markY = useTransform(p, [0, 0.5], ['0%', '-30%']);
   const fade = useTransform(p, [0, 0.25], [1, 0]);
   const over = useTransform(p, [0.6, 0.85], [0, 1]);
@@ -74,14 +85,21 @@ export function Hero() {
 
         <m.div
           className="hero-photo"
-          style={reduce ? { clipPath: from } : { clipPath: clip, ['--shade' as string]: shade }}
+          style={
+            reduce
+              ? frame
+              : { top: boxTop, left: boxLeft, width: boxWidth, height: boxHeight, ['--shade' as string]: shade }
+          }
         >
           <m.img
             src={media(`${shot.name}-1600.jpg`)}
-            srcSet={srcSet(shot.name, [900, 1600])}
+            srcSet={srcSet(shot.name, shot.widths)}
             sizes="100vw"
             alt={shot.alt}
-            style={{ objectPosition: shot.position, scale: reduce ? 1 : scale }}
+            style={reduce ? { objectPosition: shot.framed } : { objectPosition, scale }}
+            initial={reduce ? false : { clipPath: 'inset(100% 0% 0% 0%)' }}
+            animate={{ clipPath: 'inset(0% 0% 0% 0%)' }}
+            transition={{ duration: 1.1, ease: [0.2, 0.75, 0.15, 1], delay: arrival() }}
             fetchPriority="high"
           />
         </m.div>

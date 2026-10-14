@@ -4,6 +4,10 @@ import { Wordmark } from './Wordmark';
 
 const EASE = [0.76, 0, 0.24, 1] as const;
 let first = true;
+let arrived = 1.8;
+
+/* Seconds until the shutter has lifted on the page being shown. */
+export const arrival = () => arrived;
 
 /*
  * Every page arrives behind an oxblood shutter that lifts. On the first
@@ -12,6 +16,7 @@ let first = true;
 export function Page({ children }: { children: ReactNode }) {
   const intro = first;
   first = false;
+  arrived = intro ? 1.8 : 0.5;
   return (
     <>
       <m.div

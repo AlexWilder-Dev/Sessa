@@ -13,8 +13,8 @@ await sharp(`${src}/logo.png`).trim({ threshold: 1 }).toFile(`${out}/wordmark.pn
 await sharp(`${src}/logo-alt.png`).trim({ threshold: 1 }).toFile(`${out}/wordmark-small.png`);
 
 const photos = [
-  ['photo-12', 'room-day', [1600, 900]],
-  ['cw-1', 'martini', [1600, 900]],
+  ['photo-12', 'room-day', [2000, 1600, 900]],
+  ['cw-1', 'martini', [1920, 1600, 900]],
   ['cw-11', 'lunch', [1200, 700]],
   ['cw-4', 'bar-afternoon', [1200, 700]],
   ['cw-7', 'dinner', [1200, 700]],
