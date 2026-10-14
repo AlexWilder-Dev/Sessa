@@ -13,7 +13,6 @@ import {
   EVENING_MENU,
   GLASS_SIZE,
   HOT_DRINKS,
-  KITCHEN_TEXT,
   SPIRITS,
   type Dish,
   type Drink,
@@ -21,6 +20,8 @@ import {
 import { useClock } from '../lib/clock';
 import { defaultMenu } from '../lib/time';
 import { useTitle } from '../lib/title';
+import { Words } from '../components/Reveal';
+import { Wordmark } from '../components/Wordmark';
 
 type Tab = 'daytime' | 'evening' | 'drinks';
 const TABS: { id: Tab; label: string }[] = [
@@ -42,26 +43,12 @@ function Item({ d }: { d: Dish | Drink }) {
   );
 }
 
-function Dishes({ groups }: { groups: Dish[][] }) {
-  return (
-    <>
-      {groups.map((g, i) => (
-        <ul key={i} className="menu-group">
-          {g.map((d) => (
-            <Item key={d.name} d={d} />
-          ))}
-        </ul>
-      ))}
-    </>
-  );
-}
-
-function DrinkList({ title, note, items }: { title: string; note?: string; items: Drink[] }) {
+function Group({ title, note, items }: { title: string; note?: string; items: Drink[] }) {
   return (
     <section>
       <h3>
         {title}
-        {note && <small className="sc">{note}</small>}
+        {note && <small>{note}</small>}
       </h3>
       <ul>
         {items.map((d) => (
@@ -69,6 +56,20 @@ function DrinkList({ title, note, items }: { title: string; note?: string; items
         ))}
       </ul>
     </section>
+  );
+}
+
+function CardHead({ title, sub }: { title: string; sub: string }) {
+  return (
+    <header>
+      <div>
+        <h2>{title}</h2>
+        <p>{sub}</p>
+      </div>
+      <span className="card-mark">
+        <Wordmark small />
+      </span>
+    </header>
   );
 }
 
@@ -91,11 +92,13 @@ export function Menus() {
   };
 
   return (
-    <div className="page">
+    <div className="page menus-page">
       <header className="page-head wrap">
         <span className="eyebrow sc">Food & drink</span>
-        <h1 className="display">Menus</h1>
-        <p className="lede">They change often, with the seasons and the chalkboard. This is the current one.</p>
+        <h1 className="poster">
+          <Words text="The menus." italicFrom={1} />
+        </h1>
+        <p className="lede">The printed menus, made readable. They change often; this is the current one.</p>
       </header>
 
       <div className="tabs">
@@ -107,7 +110,7 @@ export function Menus() {
                 id={`tab-${t.id}`}
                 role="tab"
                 aria-selected={tab === t.id}
-                aria-controls="menu-panel"
+                aria-controls="menu-card"
                 tabIndex={tab === t.id ? 0 : -1}
                 onClick={() => choose(t.id)}
               >
@@ -119,70 +122,72 @@ export function Menus() {
         </div>
       </div>
 
-      <div className="wrap menu-body">
+      <div className="wrap menu-stage">
         <AnimatePresence mode="wait" initial={false}>
-          <m.div
+          <m.article
             key={tab}
-            id="menu-panel"
+            id="menu-card"
             role="tabpanel"
             aria-labelledby={`tab-${tab}`}
-            className={`menu-sheet ${tab === 'drinks' ? 'wide' : ''}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            className={`menu-card ${tab === 'drinks' ? 'wide' : ''}`}
+            initial={{ rotateY: -82, opacity: 0.4 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            exit={{ rotateY: 82, opacity: 0.4 }}
+            transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
           >
             {tab === 'daytime' && (
               <>
-                <header>
-                  <h2>Daytime</h2>
-                  <p>{KITCHEN_TEXT.daytime}</p>
-                </header>
-                <Dishes groups={DAYTIME_MENU} />
+                <CardHead title="Daytime Menu" sub="Tues – Sat 9am – 3pm // Sunday 9am – 2pm" />
+                {DAYTIME_MENU.map((g, i) => (
+                  <ul key={i} className="menu-group">
+                    {g.map((d) => (
+                      <Item key={d.name} d={d} />
+                    ))}
+                  </ul>
+                ))}
               </>
             )}
             {tab === 'evening' && (
               <>
-                <header>
-                  <h2>Evening</h2>
-                  <p>{KITCHEN_TEXT.evening}</p>
-                </header>
-                <Dishes groups={EVENING_MENU} />
+                <CardHead title="Evening Menu" sub="Tues – Sat 6pm – 9:30pm" />
+                {EVENING_MENU.map((g, i) => (
+                  <ul key={i} className="menu-group">
+                    {g.map((d) => (
+                      <Item key={d.name} d={d} />
+                    ))}
+                  </ul>
+                ))}
               </>
             )}
             {tab === 'drinks' && (
               <>
-                <header>
-                  <h2>Drinks</h2>
-                  <p>
-                    {BOTTLES.length} bottles on the{' '}
-                    <Link className="link" to="/wine">
-                      wine list
-                    </Link>
-                    , too.
-                  </p>
-                </header>
+                <CardHead title="Drinks" sub={`And ${BOTTLES.length} bottles on the wine list.`} />
                 <div className="drinks-grid">
-                  <DrinkList title="Wine by the glass" note={GLASS_SIZE} items={BY_THE_GLASS} />
-                  <DrinkList title="Cocktails" items={COCKTAILS} />
-                  <DrinkList title="Beer" note={BEER_NOTE} items={BEER} />
-                  <DrinkList title="Alcohol free" items={ALCOHOL_FREE} />
-                  <DrinkList title="Spirits etc" items={SPIRITS} />
+                  <Group title="Wine by the glass" note={GLASS_SIZE} items={BY_THE_GLASS} />
+                  <Group title="Cocktails" items={COCKTAILS} />
+                  <Group title="Beers" note={BEER_NOTE} items={BEER} />
+                  <Group title="Alcohol free" items={ALCOHOL_FREE} />
+                  <Group title="Spirits etc" items={SPIRITS} />
                   <section>
                     <h3>Hot drinks</h3>
                     <ul>
                       <li className="dish">
                         <span>
                           <span className="dish-name">{HOT_DRINKS.makers}</span>
-                          <span className="dish-detail">{HOT_DRINKS.note}</span>
+                          <span className="dish-note">{HOT_DRINKS.note.toLowerCase()}</span>
                         </span>
                       </li>
                     </ul>
+                    <p style={{ marginTop: 24 }}>
+                      <Link className="link" to="/wine">
+                        Find a bottle →
+                      </Link>
+                    </p>
                   </section>
                 </div>
               </>
             )}
-          </m.div>
+          </m.article>
         </AnimatePresence>
         <p className="allergy">{ALLERGY_LINE}</p>
       </div>

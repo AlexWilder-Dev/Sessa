@@ -25,6 +25,8 @@ const photos = [
   ['photo-1', 'window-night', [860]],
   ['photo-5', 'martini-bar', [860]],
   ['photo-8', 'room-evening', [860]],
+  ['photo-6', 'chalkboard', [860]],
+  ['photo-7', 'shelf', [860]],
   ['team', 'team', [860]],
   ['quince', 'quince', [1100]],
 ];

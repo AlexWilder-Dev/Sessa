@@ -2,62 +2,74 @@ import { Link } from 'react-router-dom';
 import { DAYTIME_MENU, EVENING_MENU, QUOTES, type Dish, type MenuId } from '../data/sessa';
 import { useClock } from '../lib/clock';
 import { media } from '../lib/media';
+import { Picture, Rise, Words } from '../components/Reveal';
+import { Wordmark } from '../components/Wordmark';
 
-const PICKS: { id: MenuId; title: string; hours: string; dishes: Dish[] }[] = [
-  { id: 'daytime', title: 'Daytime', hours: '9am – 3pm, Sundays till 2', dishes: DAYTIME_MENU.flat().filter((d) => d.feature) },
-  { id: 'evening', title: 'Evening', hours: '6pm – 9:30pm, Tuesday to Saturday', dishes: EVENING_MENU.flat().filter((d) => d.feature) },
+const CARDS: { id: MenuId; title: string; hours: string; dishes: Dish[] }[] = [
+  { id: 'daytime', title: 'Daytime Menu', hours: 'Tues – Sat 9am – 3pm // Sunday 9am – 2pm', dishes: DAYTIME_MENU.flat().filter((d) => d.feature) },
+  { id: 'evening', title: 'Evening Menu', hours: 'Tues – Sat 6pm – 9:30pm', dishes: EVENING_MENU.flat().filter((d) => d.feature) },
 ];
 
 export function Food() {
   const { now } = useClock();
   return (
-    <section className="section food field" id="food" aria-labelledby="food-title">
+    <section className="food" id="food" aria-labelledby="food-title">
       <div className="wrap">
-        <div className="food-photos">
-          <figure className="photo big">
-            <img src={media('saucisson-1200.jpg')} srcSet={`${media('saucisson-700.jpg')} 700w, ${media('saucisson-1200.jpg')} 1200w`} sizes="(min-width: 1000px) 45vw, 100vw" loading="lazy" alt="Saucisson and cornichons on a yellow plate, red wine, the red-splattered table" />
-          </figure>
-          <figure className="photo small">
-            <img src={media('grating-700.jpg')} loading="lazy" alt="Cheese grated over a dish, tattooed hands, a navy work shirt" />
-          </figure>
-        </div>
-        <div>
-          <span className="eyebrow sc">The food</span>
-          <blockquote>
-            <p id="food-title" className="title">
-              “{QUOTES.mollyFood.text}”
+        <span className="eyebrow sc">The food</span>
+        <div className="food-head">
+          <h2 id="food-title" className="display">
+            <Words text={`“${QUOTES.mollyFood.text}”`} italicFrom={0} />
+          </h2>
+          <Rise className="lede">
+            <p>
+              Molly’s cooking. A simple breakfast and lunch through the day, Toklas pastries in the morning, and
+              seasonal small plates in the evening. It changes often, and it’s written up on the chalkboard.
             </p>
-            <footer className="sc">Molly Kyte, on her cooking</footer>
-          </blockquote>
-          <p className="lede">
-            A simple breakfast and lunch through the day, seasonal small plates in the evening, and Toklas pastries in
-            the morning. The menus change often; this is what’s on now.
-          </p>
-          <div className="menus-pair">
-            {PICKS.map((p) => (
-              <div key={p.id} className="menu-col">
-                <h3>
-                  {p.title}
-                  {now.menu === p.id && <em className="red">on now</em>}
-                </h3>
-                <p>{p.hours}</p>
-                <ul className="priced">
-                  {p.dishes.map((d) => (
-                    <li key={d.name}>
-                      <span>
-                        {d.name}
-                        {d.note && <small> {d.note}</small>}
-                      </span>
-                      <span>{d.price}</span>
-                    </li>
-                  ))}
-                </ul>
+          </Rise>
+        </div>
+
+        <div className="collage">
+          <Picture
+            className="a"
+            src={media('saucisson-1200.jpg')}
+            srcSet={`${media('saucisson-700.jpg')} 700w, ${media('saucisson-1200.jpg')} 1200w`}
+            sizes="(min-width: 800px) 58vw, 100vw"
+            alt="Saucisson and cornichons on a yellow plate, red wine, the red-splattered table"
+          />
+          <Picture className="b" src={media('salad-700.jpg')} alt="A salad piled with shaved cheese, carried out of the kitchen" delay={0.15} position="50% 60%" />
+          <Picture className="c" src={media('grating-700.jpg')} alt="Cheese grated over a plate, tattooed hands" delay={0.3} />
+        </div>
+
+        <div className="cards">
+          {CARDS.map((c) => (
+            <Link key={c.id} to="/menus" state={{ tab: c.id }} className="card" aria-label={`${c.title}, see the full menu`}>
+              {now.menu === c.id && <span className="stamp">on now</span>}
+              <div className="card-top">
+                <div>
+                  <h3>{c.title}</h3>
+                  <p className="hours">{c.hours}</p>
+                </div>
+                <span className="card-mark">
+                  <Wordmark small />
+                </span>
               </div>
-            ))}
-          </div>
-          <Link className="pill" to="/menus">
-            The full menus
-          </Link>
+              <ul>
+                {c.dishes.map((d) => (
+                  <li key={d.name}>
+                    <span>
+                      {d.name}
+                      {d.note && <small> ({d.note})</small>}
+                    </span>
+                    <span>{d.price}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="card-foot">
+                <span className="sc">A few from the menu</span>
+                <span>Full menu →</span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </section>

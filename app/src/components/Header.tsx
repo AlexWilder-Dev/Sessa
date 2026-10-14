@@ -16,28 +16,15 @@ const LINKS = [
 export function Header() {
   const { now } = useClock();
   const { pathname, key } = useLocation();
-  const [over, setOver] = useState(pathname === '/');
+  const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Over the photograph on the home page, the header is see-through and butter.
   useEffect(() => {
-    if (pathname !== '/') {
-      setOver(false);
-      return;
-    }
-    const onScroll = () => {
-      const hero = document.querySelector('.hero');
-      const limit = hero ? hero.getBoundingClientRect().bottom : 0;
-      setOver(limit > 72);
-    };
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [pathname]);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => setOpen(false), [pathname, key]);
   useEffect(() => {
@@ -52,7 +39,7 @@ export function Header() {
 
   return (
     <>
-      <header className={`header ${over ? 'is-over' : ''}`}>
+      <header className={`header ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="wrap">
           <Link to="/" className="header-mark" aria-label="Sessa, home">
             <Wordmark small />

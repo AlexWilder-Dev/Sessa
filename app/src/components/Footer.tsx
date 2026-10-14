@@ -6,19 +6,20 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="wrap">
+        <div className="footer-mark">
+          <span className="wm">
+            <Wordmark />
+          </span>
+        </div>
         <div className="footer-grid">
-          <div>
-            <div className="footer-mark">
-              <Wordmark />
-            </div>
-            <p className="footer-line">{VENUE.line}.</p>
-          </div>
+          <p>
+            <em>{VENUE.line}.</em>
+          </p>
           <div>
             <h3 className="sc">Visit</h3>
             <ul>
-              <li>{VENUE.street}</li>
               <li>
-                {VENUE.area}, {VENUE.city} {VENUE.postcode}
+                {VENUE.street}, {VENUE.postcode}
               </li>
               <li>Tue – Thu 9am – 10:30pm</li>
               <li>Fri – Sat 9am – 11pm</li>

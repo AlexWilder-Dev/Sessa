@@ -6,7 +6,7 @@ export function NotFound() {
   return (
     <div className="page">
       <div className="page-head wrap notfound">
-        <h1 className="display">Wrong door.</h1>
+        <h1 className="poster">Wrong door.</h1>
         <p className="lede">
           Nothing here. <Link className="link" to="/">Back to the bar</Link>.
         </p>

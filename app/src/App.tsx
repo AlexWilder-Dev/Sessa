@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { LazyMotion, MotionConfig } from 'framer-motion';
+import { AnimatePresence, LazyMotion, MotionConfig, domAnimation } from 'framer-motion';
 import { ClockProvider } from './lib/clock';
+import { Smooth, useScrollTo } from './components/Smooth';
+import { Page } from './components/Curtain';
 import { Header } from './components/Header';
 import { PhoneBar } from './components/PhoneBar';
 import { Footer } from './components/Footer';
@@ -12,52 +14,57 @@ import { Events } from './pages/Events';
 import { Jobs } from './pages/Jobs';
 import { NotFound } from './pages/NotFound';
 
-const features = () => import('./lib/motion').then((r) => r.default);
+function Pages() {
+  const location = useLocation();
+  const scrollTo = useScrollTo();
+  const target = (location.state as { scrollTo?: string } | null)?.scrollTo;
 
-function Scroll() {
-  const { pathname, key, state } = useLocation();
-  const target = (state as { scrollTo?: string } | null)?.scrollTo;
-
-  useEffect(() => {
-    if (!target) window.scrollTo(0, 0);
-  }, [pathname]);
-
+  // "Find us" and other in-page links: once the page is up, glide to the section.
   useEffect(() => {
     if (!target) return;
     let tries = 0;
     let frame = 0;
     const go = () => {
       const el = document.getElementById(target);
-      if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-      else if (tries++ < 60) frame = requestAnimationFrame(go);
+      if (el) scrollTo(el);
+      else if (tries++ < 90) frame = requestAnimationFrame(go);
     };
-    frame = requestAnimationFrame(go);
-    return () => cancelAnimationFrame(frame);
-  }, [key, target]);
-  return null;
+    const t = window.setTimeout(() => (frame = requestAnimationFrame(go)), 350);
+    return () => {
+      window.clearTimeout(t);
+      cancelAnimationFrame(frame);
+    };
+  }, [location.key, target]);
+
+  return (
+    <AnimatePresence mode="wait" initial={true} onExitComplete={() => scrollTo(0, true)}>
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Page><Home /></Page>} />
+        <Route path="/menus" element={<Page><Menus /></Page>} />
+        <Route path="/wine" element={<Page><Wine /></Page>} />
+        <Route path="/events" element={<Page><Events /></Page>} />
+        <Route path="/jobs" element={<Page><Jobs /></Page>} />
+        <Route path="*" element={<Page><NotFound /></Page>} />
+      </Routes>
+    </AnimatePresence>
+  );
 }
 
 export function App() {
   return (
-    <LazyMotion features={features} strict>
+    <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion="user">
         <ClockProvider>
-          <HashRouter>
-            <Scroll />
-            <Header />
-            <main id="main">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/menus" element={<Menus />} />
-                <Route path="/wine" element={<Wine />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/jobs" element={<Jobs />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-            <Footer />
-            <PhoneBar />
-          </HashRouter>
+          <Smooth>
+            <HashRouter>
+              <Header />
+              <main id="main">
+                <Pages />
+              </main>
+              <Footer />
+              <PhoneBar />
+            </HashRouter>
+          </Smooth>
         </ClockProvider>
       </MotionConfig>
     </LazyMotion>
