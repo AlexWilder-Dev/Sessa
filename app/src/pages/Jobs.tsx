@@ -1,71 +1,48 @@
-import { useEffect } from 'react';
-import { HOURS_TEXT, JOBS, JOBS_OFFER, VENUE } from '../data/sessa';
+import { JOB, VENUE } from '../data/sessa';
+import { useTitle } from '../lib/title';
 
 export function Jobs() {
-  useEffect(() => {
-    document.title = 'Jobs · Sessa, Herne Hill';
-    return () => {
-      document.title = 'Sessa · All-day bar & café, Herne Hill';
-    };
-  }, []);
-
+  useTitle('Jobs');
   return (
-    <div className="jobs-page">
+    <div className="page">
       <header className="page-head wrap">
-        <p className="label eyebrow">Jobs</p>
-        <h1 className="h-xl rough-lg">Come and work here.</h1>
-        <p className="lede">A small, family run and fully independent bar and café in Herne Hill.</p>
+        <span className="eyebrow sc">Jobs</span>
+        <h1 className="display">Come and cook with us.</h1>
       </header>
-
-      <div className="wrap">
-        {JOBS.map((job) => (
-          <article key={job.title} className="job">
-            <header className="job-head">
-              <h2 className="h-l">{job.title}</h2>
-              <p className="job-pay price">{job.pay}</p>
-            </header>
-            <div className="job-grid">
-              <div className="job-main">
-                <p className="job-intro">{job.intro}</p>
-                <h3 className="label">Requirements / expectations</h3>
-                <ul className="job-list">
-                  {job.requirements.map((r) => (
-                    <li key={r}>{r}</li>
-                  ))}
-                </ul>
-                <a
-                  className="btn btn-book"
-                  href={`mailto:${VENUE.email}?subject=${encodeURIComponent(job.title)}`}
-                >
-                  Apply by email <span className="arrow">→</span>
-                </a>
-                <p className="job-apply">{job.apply}</p>
-              </div>
-              <aside className="job-side">
-                <div>
-                  <h3 className="label">What we offer</h3>
-                  <ul className="job-list">
-                    {JOBS_OFFER.map((o) => (
-                      <li key={o}>{o}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="label">Opening hours</h3>
-                  <ul className="job-hours">
-                    {HOURS_TEXT.map((h) => (
-                      <li key={h.days}>
-                        <span>{h.days}</span>
-                        <span>{h.hours}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </aside>
-            </div>
-          </article>
-        ))}
-      </div>
+      <article className="wrap split job">
+        <div>
+          <h2>{JOB.title}</h2>
+          <p className="pay">{JOB.pay}</p>
+          <p className="job-intro">{JOB.intro}</p>
+          <h3 className="sc">Requirements and expectations</h3>
+          <ul>
+            {JOB.requirements.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+          <div className="actions">
+            <a className="pill pill-ink" href={`mailto:${VENUE.email}?subject=${encodeURIComponent(JOB.title)}`}>
+              Apply by email
+            </a>
+          </div>
+          <p className="caption">{JOB.apply}</p>
+        </div>
+        <aside className="job-side">
+          <h3 className="sc">What we offer</h3>
+          <ul>
+            {JOB.offer.map((o) => (
+              <li key={o}>{o}</li>
+            ))}
+          </ul>
+          <h3 className="sc">Opening hours</h3>
+          <ul>
+            <li>Tuesday – Thursday: 9am – 10:30pm</li>
+            <li>Friday: 9am – 11pm</li>
+            <li>Saturday: 9am – 11pm</li>
+            <li>Sunday: 9am – 3pm</li>
+          </ul>
+        </aside>
+      </article>
     </div>
   );
 }

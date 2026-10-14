@@ -1,56 +1,41 @@
-import { useEffect } from 'react';
 import { EVENTS, VENUE } from '../data/sessa';
 import { media } from '../lib/media';
+import { useTitle } from '../lib/title';
 
 export function Events() {
-  useEffect(() => {
-    document.title = 'Events · Sessa, Herne Hill';
-    return () => {
-      document.title = 'Sessa · All-day bar & café, Herne Hill';
-    };
-  }, []);
-
+  useTitle('Events');
   const mail = `mailto:${VENUE.email}?subject=${encodeURIComponent('Event enquiry')}`;
-
   return (
-    <div className="events-page">
+    <div className="page">
       <header className="page-head wrap">
-        <p className="label eyebrow">Events</p>
-        <h1 className="h-xl rough-lg">The bar, at yours.</h1>
+        <span className="eyebrow sc">Events</span>
+        <h1 className="display">
+          The bar, <em>wherever you need it.</em>
+        </h1>
       </header>
-      <div className="wrap events-grid">
-        <div className="events-copy">
-          <p className="events-range" aria-label="30 to 300 guests">
-            <span className="price rough-lg">30</span>
-            <span className="events-to">to</span>
-            <span className="price rough-lg">300</span>
-            <span className="events-guests">guests</span>
+      <div className="wrap split">
+        <div>
+          <p className="guests">
+            30 – 300 <em>guests</em>
           </p>
           <p className="lede">{EVENTS.lead}</p>
           <p>{EVENTS.body}</p>
           <p>{EVENTS.ask}</p>
-          <a className="btn btn-book" href={mail}>
-            {EVENTS.cta} <span className="arrow">→</span>
-          </a>
-          <p className="events-alt">
-            Or write to{' '}
-            <a className="link" href={mail}>
-              {VENUE.email}
+          <div className="actions">
+            <a className="pill pill-ink" href={mail}>
+              {EVENTS.cta}
             </a>
-            , or message us on{' '}
-            <a className="link" href={VENUE.instagramHref} target="_blank" rel="noopener">
+            <a className="pill" href={VENUE.instagramHref} target="_blank" rel="noopener">
               Instagram
             </a>
-            .
-          </p>
+          </div>
         </div>
-        <figure className="photo events-photo">
+        <figure className="photo">
           <img
-            src={media('photo-11.jpg')}
-            width={860}
-            height={600}
+            src={media('martini-900.jpg')}
             loading="lazy"
-            alt="A negroni over ice with a slice of orange on the steel bar"
+            alt="A martini being finished with a twist of lemon"
+            style={{ objectPosition: '34% 50%' }}
           />
         </figure>
       </div>

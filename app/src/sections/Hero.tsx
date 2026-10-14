@@ -2,93 +2,119 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, m } from 'framer-motion';
 import { QUOTES, VENUE } from '../data/sessa';
 import { useClock } from '../lib/clock';
-import { clock } from '../lib/time';
-import { media } from '../lib/media';
+import { media, srcSet } from '../lib/media';
 import { Wordmark } from '../components/Wordmark';
-import { OpenSign } from '../components/OpenSign';
+
+const SHOTS = {
+  day: {
+    name: 'room-day',
+    widths: [900, 1600],
+    alt: 'The room by day: butter-yellow walls, long wooden tables, a candle lit on the shelf, Railton Road through the windows',
+    position: '50% 55%',
+  },
+  evening: {
+    name: 'martini',
+    widths: [900, 1600],
+    alt: 'A martini being finished with a twist of lemon at the bar',
+    position: '38% 40%',
+  },
+};
 
 export function Hero() {
   const { now } = useClock();
-  // After five the window shot takes over: the room seen from the street, lit.
-  const evening = now.open && now.min >= 17 * 60;
-
-  const statusHead = now.open ? 'Open now.' : 'Closed now.';
-  const statusBody = now.open
-    ? `${now.kitchen} Doors close at ${clock(now.hours!.to)}.`
-    : `${now.next ?? ''}.`;
+  const shot = now.open && now.min >= 17 * 60 ? SHOTS.evening : SHOTS.day;
 
   return (
-    <section className="hero" aria-labelledby="hero-title">
-      <div className="wrap">
-        <h1 id="hero-title" className="hero-mark">
-          <Wordmark label="Sessa" />
-          <span className="visually-hidden">, {VENUE.line}</span>
-        </h1>
-
-        <div className="hero-grid">
-          <p className="hero-line">
-            {VENUE.line}.
-            <span> Coffee from nine, martinis till late, opposite the station.</span>
+    <section className={`hero ${now.open ? '' : 'is-closed'}`} aria-label="Sessa">
+      <AnimatePresence initial={false}>
+        <m.div
+          key={shot.name}
+          className="hero-img"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2 }}
+        >
+          <img
+            src={media(`${shot.name}-1600.jpg`)}
+            srcSet={srcSet(shot.name, shot.widths)}
+            sizes="100vw"
+            alt={shot.alt}
+            style={{ objectPosition: shot.position }}
+            fetchPriority="high"
+          />
+        </m.div>
+      </AnimatePresence>
+      <div className="hero-foot">
+        <div className="wrap">
+          <h1 className="hero-mark">
+            <Wordmark label="Sessa" />
+          </h1>
+          <p className="hero-meta sc">
+            All day bar &amp; café
+            <br />
+            {VENUE.street}, {VENUE.area}
           </p>
-
-          <figure className={`hero-photo photo ${now.open ? '' : 'is-dim'}`}>
-            <AnimatePresence initial={false}>
-              {evening ? (
-                <m.img
-                  key="night"
-                  src={media('photo-1.jpg')}
-                  width={860}
-                  height={600}
-                  alt="Sessa at night through the front window: full tables, candles, the open kitchen at the back"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.2 }}
-                  fetchPriority="high"
-                />
-              ) : (
-                <m.img
-                  key="day"
-                  src={media('room-day-1600.jpg')}
-                  srcSet={`${media('room-day-1000.jpg')} 1000w, ${media('room-day-1600.jpg')} 1600w`}
-                  sizes="(min-width: 1000px) 58vw, 100vw"
-                  width={1600}
-                  height={1066}
-                  alt="The room by day: yellow walls, long wooden tables, a candle on the shelf, the street through the windows"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.2 }}
-                  fetchPriority="high"
-                />
-              )}
-            </AnimatePresence>
-          </figure>
-
-          <div className="hero-status">
-            <OpenSign open={now.open} size={88} className="hero-sign" />
-            <p aria-live="polite">
-              <strong>{statusHead}</strong> {statusBody}
-            </p>
-          </div>
-
-          <blockquote className="hero-quote">
-            <p>“{QUOTES.molly.text}”</p>
-            <footer>
-              {QUOTES.molly.who}, chef, in <cite>{QUOTES.molly.source}</cite>
-            </footer>
-          </blockquote>
-
-          <div className="hero-actions">
-            <a className="btn btn-book" href={VENUE.bookHref} target="_blank" rel="noopener">
-              Book a table <span className="arrow">→</span>
-            </a>
-            <Link className="btn btn-line" to="/menus">
-              {now.menu === 'evening' ? 'Tonight’s menu' : now.menu === 'daytime' ? 'Today’s menu' : 'Menus'}
-            </Link>
-          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+export function Intro() {
+  const { now } = useClock();
+  const menuLabel = now.menu === 'evening' ? 'Tonight’s menu' : now.menu === 'daytime' ? 'Today’s menu' : 'Menus';
+  return (
+    <>
+      <section className="intro" aria-label="Open now">
+        <div className="wrap">
+          <h2>
+            Coffee from nine, <em>martinis till late.</em>
+          </h2>
+          <div>
+            <p className="status">
+              {now.open ? (
+                <>
+                  <strong>Open now.</strong> {now.kitchen}. {now.next}.
+                </>
+              ) : (
+                <>
+                  <strong>Closed now.</strong> {now.next}.
+                </>
+              )}
+            </p>
+            <div className="actions">
+              <a className="pill pill-ink" href={VENUE.bookHref} target="_blank" rel="noopener">
+                Book a table
+              </a>
+              <Link className="pill" to="/menus">
+                {menuLabel}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section quote field" aria-label="What Sessa is">
+        <div className="wrap">
+          <blockquote>
+            <p>“{QUOTES.molly.text}”</p>
+            <footer className="sc">
+              {QUOTES.molly.who}, chef · in {QUOTES.molly.where}
+            </footer>
+          </blockquote>
+          <figure className="painting">
+            <img
+              src={media('quince-1100.jpg')}
+              width={1100}
+              height={1100}
+              loading="lazy"
+              alt="Oil painting of five yellow quinces on a red ground, signed Katia, 2023"
+            />
+            <figcaption>Quinces. Katia, 2023.</figcaption>
+          </figure>
+        </div>
+      </section>
+    </>
   );
 }

@@ -6,12 +6,12 @@ import {
   EVENING_MENU,
   HOURS,
   KITCHEN,
-  type Dish,
+  SUPPLIERS,
   type MenuId,
   type Span,
 } from '../data/sessa';
 
-/* A moment in Sessa's week: day 0 = Sunday, minutes after midnight (London). */
+/* A moment in Sessa's week: day 0 = Sunday, minutes after midnight in London. */
 export type Moment = { day: number; min: number };
 
 export const DAY_START = 9 * 60;
@@ -27,15 +27,14 @@ const londonFormat = new Intl.DateTimeFormat('en-GB', {
 
 export function londonNow(date = new Date()): Moment {
   const parts = londonFormat.formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
   const day = DAYS_SHORT.indexOf(get('weekday'));
   return { day: day < 0 ? date.getDay() : day, min: Number(get('hour')) * 60 + Number(get('minute')) };
 }
 
-/* ?at=sat-11:30, ?at=sun-14:30, ?at=fri-21 … */
+/* ?at=sat-11:30 (also sat-1130, saturday-11:30, fri-21) */
 export function parseAt(value: string | null): Moment | null {
-  if (!value) return null;
-  const m = value.trim().toLowerCase().match(/^([a-z]{3})[a-z]*[-_ ]?(\d{1,2})(?::?(\d{2}))?$/);
+  const m = value?.trim().toLowerCase().match(/^([a-z]{3})[a-z]*[-_ ]?(\d{1,2})(?::?(\d{2}))?$/);
   if (!m) return null;
   const day = DAYS_SHORT.findIndex((d) => d.toLowerCase() === m[1]);
   const h = Number(m[2]);
@@ -44,117 +43,148 @@ export function parseAt(value: string | null): Moment | null {
   return { day, min: h * 60 + min };
 }
 
-/* Reads ?at= from the real query string or from the query inside the hash. */
-export function readAtParam(): Moment | null {
-  if (typeof window === 'undefined') return null;
+export function readAt(): Moment | null {
   const direct = new URLSearchParams(window.location.search).get('at');
-  const hashQuery = window.location.hash.split('?')[1] ?? '';
-  const inHash = new URLSearchParams(hashQuery).get('at');
+  const inHash = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('at');
   return parseAt(direct ?? inHash);
 }
 
-/* 9am, 11:30am, 3pm, 10:30pm */
+/* 9am, 11:30am, 10:30pm */
 export function clock(min: number): string {
   const h24 = Math.floor(min / 60) % 24;
   const m = min % 60;
+  const h = h24 % 12 || 12;
   const suffix = h24 < 12 ? 'am' : 'pm';
-  const h = h24 % 12 === 0 ? 12 : h24 % 12;
-  return m === 0 ? `${h}${suffix}` : `${h}:${String(m).padStart(2, '0')}${suffix}`;
+  return m ? `${h}:${String(m).padStart(2, '0')}${suffix}` : `${h}${suffix}`;
 }
 
-/* 11:30 without the suffix, for big numerals. */
-export function clockParts(min: number): { hm: string; suffix: string } {
-  const h24 = Math.floor(min / 60) % 24;
+const WORDS = ['twelve', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven'];
+const hourWord = (h: number) => (h % 24 === 12 ? 'midday' : WORDS[h % 12]);
+
+/* "half past eleven", "nine", "quarter to six" */
+export function spoken(min: number): string {
+  const h = Math.floor(min / 60);
   const m = min % 60;
-  const h = h24 % 12 === 0 ? 12 : h24 % 12;
-  return { hm: `${h}:${String(m).padStart(2, '0')}`, suffix: h24 < 12 ? 'am' : 'pm' };
+  if (m === 0) return hourWord(h);
+  if (m === 15) return `quarter past ${hourWord(h)}`;
+  if (m === 30) return `half past ${hourWord(h)}`;
+  if (m === 45) return `quarter to ${hourWord(h + 1)}`;
+  return clock(min);
 }
 
-const within = (span: Span | null | undefined, min: number) =>
-  !!span && min >= span.from && min < span.to;
+function partOfDay(min: number): string {
+  if (min < 12 * 60) return 'in the morning';
+  if (min < 17 * 60) return 'in the afternoon';
+  if (min < 21 * 60) return 'in the evening';
+  return 'at night';
+}
 
-export type Phase =
-  | 'closed-day'
-  | 'before-open'
-  | 'after-close'
-  | 'daytime'
-  | 'between'
-  | 'evening'
-  | 'bar-only';
+/* The heading of the sentence: "Saturday, half past eleven in the morning." */
+export function whenText(m: Moment): string {
+  const words = spoken(m.min);
+  if (/\d/.test(words)) return `${DAYS[m.day]}, ${words}.`;
+  if (words === 'midday') return `${DAYS[m.day]}, midday.`;
+  const oclock = m.min % 60 === 0 ? ' o’clock' : '';
+  return `${DAYS[m.day]}, ${words}${oclock} ${partOfDay(m.min)}.`;
+}
 
-export type OnBoard = { name: string; price: string; when?: string; drink?: boolean };
+const within = (span: Span | null | undefined, min: number) => !!span && min >= span.from && min < span.to;
+
+export type Phase = 'closed-day' | 'before-open' | 'after-close' | 'daytime' | 'between' | 'evening' | 'bar';
+
+/* A run of text, with dish and drink names marked for emphasis. */
+export type Part = string | { em: string };
 
 export type DayState = Moment & {
   open: boolean;
   hours: Span | null;
   menu: MenuId | null;
   phase: Phase;
-  /* "Open till 11pm" / "Closed" */
   doors: string;
-  /* What the kitchen is doing, in a sentence. */
   kitchen: string;
-  /* What changes next. */
   next: string | null;
-  /* Today's items for the chalkboard, at this moment. */
-  board: OnBoard[];
-  /* Items that come on later in this service. */
-  later: OnBoard[];
-  /* One line on what the room is like at this hour. */
-  mood: string;
+  story: Part[];
 };
 
-function nextOpening(m: Moment): string {
+function nextOpening(m: Moment): { text: string; spokenText: string } {
   for (let i = 0; i < 8; i++) {
     const day = (m.day + i) % 7;
     const span = HOURS[day];
-    if (!span) continue;
-    if (i === 0 && m.min >= span.from) continue;
-    const when = i === 0 ? 'today' : i === 1 ? 'tomorrow' : DAYS[day];
-    return `Opens ${when} at ${clock(span.from)}`;
+    if (!span || (i === 0 && m.min >= span.from)) continue;
+    const when = i === 0 ? 'today' : i === 1 ? 'tomorrow' : `on ${DAYS[day]}`;
+    return {
+      text: `Opens ${when === `on ${DAYS[day]}` ? DAYS[day] : when} at ${clock(span.from)}`,
+      spokenText: `Back ${when} at ${spoken(span.from)}.`,
+    };
   }
-  return '';
+  return { text: '', spokenText: '' };
 }
 
-function dishAvailable(d: Dish, m: Moment): boolean {
-  if (d.days && !d.days.includes(m.day)) return false;
-  if (d.from !== undefined && m.min < d.from) return false;
-  return true;
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const keepCase = (s: string) => (/^(Gilda|Pyefleet|Spanish|Westcombe)/.test(s) ? s : lower(s));
+
+function garibaldi(m: Moment): Part[] {
+  const g = COCKTAILS.find((c) => c.window && c.days);
+  if (!g?.window || !g.days?.includes(m.day)) return [];
+  if (within(g.window, m.min)) return [' ', { em: 'Garibaldis' }, ` until ${spoken(g.window.to)}.`];
+  if (m.min < g.window.from) return [' ', { em: 'Garibaldis' }, ` from ${spoken(g.window.from)}.`];
+  return [];
 }
 
-function boardFor(menu: MenuId | null, m: Moment, open: boolean): { board: OnBoard[]; later: OnBoard[] } {
-  const board: OnBoard[] = [];
-  const later: OnBoard[] = [];
-  if (menu) {
-    const dishes = (menu === 'daytime' ? DAYTIME_MENU : EVENING_MENU).flat().filter((d) => d.board);
-    for (const d of dishes) {
-      if (d.days && !d.days.includes(m.day)) continue;
-      const item = { name: d.name, price: d.price, when: d.note };
-      if (dishAvailable(d, m)) board.push(item);
-      else later.push(item);
+function storyFor(m: Moment, phase: Phase, hours: Span | null): Part[] {
+  const day = m.day;
+  const dayK = KITCHEN.daytime[day];
+  const eveK = KITCHEN.evening[day];
+  switch (phase) {
+    case 'closed-day':
+      return [`We’re closed on Mondays. ${nextOpening(m).spokenText}`];
+    case 'before-open':
+      return [`Not open yet. Doors at ${spoken(hours!.from)}.`];
+    case 'after-close':
+      return hours!.to <= 18 * 60
+        ? [`We closed at ${spoken(hours!.to)}. ${nextOpening(m).spokenText}`]
+        : [`We’ve closed for the night. ${nextOpening(m).spokenText}`];
+    case 'daytime': {
+      const parts: Part[] = [`The daytime menu’s on until ${spoken(dayK!.to)}.`];
+      if (m.min < 12 * 60) {
+        const coffee = SUPPLIERS.find((s) => s.what === 'Coffee')!.who;
+        const pastry = SUPPLIERS.find((s) => s.what === 'Pastries')!.who;
+        parts.push(' ', { em: `${coffee} coffee` }, ' and ', { em: `${pastry} pastries` }, '.');
+      }
+      const dishes = DAYTIME_MENU.flat();
+      const sandwich = dishes.find((d) => d.from !== undefined)!;
+      const name = lower(sandwich.name);
+      if (m.min < sandwich.from!) parts.push(' The ', { em: name }, ` comes on at ${spoken(sandwich.from!)}.`);
+      else if (m.min < sandwich.from! + 30) parts.push(' The ', { em: name }, ' has just come on.');
+      else parts.push(' There’s the ', { em: name }, '.');
+      const tortilla = dishes.find((d) => d.days?.includes(day));
+      if (tortilla) parts.push(' It’s the weekend, so there’s ', { em: keepCase(tortilla.name) }, '.');
+      parts.push(...garibaldi(m));
+      return parts;
+    }
+    case 'between':
+      return [
+        'The kitchen’s between menus, so it’s the bar for now: ',
+        { em: '£6.50' },
+        ' a glass, ',
+        { em: '£7' },
+        ' for the house martini. The evening menu starts at ',
+        `${spoken(eveK!.from)}.`,
+      ];
+    case 'evening': {
+      const featured = EVENING_MENU.flat().filter((d) => d.feature);
+      const parts: Part[] = [`The evening menu’s on until ${spoken(eveK!.to)}: `];
+      featured.forEach((d, i) => {
+        parts.push({ em: keepCase(d.name) });
+        parts.push(i < featured.length - 2 ? ', ' : i === featured.length - 2 ? ' and ' : '.');
+      });
+      return parts;
+    }
+    case 'bar': {
+      const kitchenDone = eveK ? 'The kitchen’s closed' : 'The kitchen’s finished for the day';
+      return [`${kitchenDone}; the bar’s open until ${spoken(hours!.to)}.`, ...garibaldi(m)];
     }
   }
-  if (open) {
-    for (const c of COCKTAILS) {
-      if (!c.days || !c.window) continue;
-      if (!c.days.includes(m.day)) continue;
-      const item = { name: c.name, price: c.price, when: c.note, drink: true };
-      if (within(c.window, m.min)) board.push(item);
-      else if (m.min < c.window.from) later.push(item);
-    }
-  }
-  return { board, later };
-}
-
-function moodFor(min: number, phase: Phase): string {
-  if (phase === 'bar-only' && min < 18 * 60) return 'Sliding into wine and cocktails.';
-  if (phase === 'closed-day') return 'Lights off.';
-  if (phase === 'before-open') return 'Not open yet.';
-  if (phase === 'after-close') return 'Candles out.';
-  if (min < 12 * 60) return 'Coffee and pastries.';
-  if (min < 15 * 60) return 'Lunch, and maybe a glass with it.';
-  if (min < 18 * 60) return 'Sliding into wine and cocktails.';
-  if (min < 21 * 60) return 'Candles lit. Small plates and a bottle.';
-  return 'Late. Martinis.';
 }
 
 export function stateAt(m: Moment): DayState {
@@ -171,51 +201,25 @@ export function stateAt(m: Moment): DayState {
   else if (m.min < hours.from) phase = 'before-open';
   else if (m.min >= hours.to) phase = 'after-close';
   else if (menu) phase = menu;
-  else {
-    const eve = KITCHEN.evening[m.day];
-    phase = eve && m.min < eve.from ? 'between' : 'bar-only';
-  }
+  else phase = KITCHEN.evening[m.day] && m.min < KITCHEN.evening[m.day]!.from ? 'between' : 'bar';
 
   const dayK = KITCHEN.daytime[m.day];
   const eveK = KITCHEN.evening[m.day];
-  let kitchen = '';
+  const kitchen =
+    phase === 'daytime'
+      ? `Daytime menu until ${clock(dayK!.to)}`
+      : phase === 'evening'
+        ? `Evening menu until ${clock(eveK!.to)}`
+        : phase === 'between'
+          ? `Between menus · evening menu from ${clock(eveK!.from)}`
+          : phase === 'bar'
+            ? 'Kitchen closed · bar open'
+            : 'Closed';
+
   let next: string | null = null;
-
-  switch (phase) {
-    case 'closed-day':
-      kitchen = 'Closed on Mondays.';
-      next = nextOpening(m);
-      break;
-    case 'before-open':
-      kitchen = `Daytime menu from ${clock(dayK!.from)}.`;
-      next = nextOpening(m);
-      break;
-    case 'after-close':
-      kitchen = hours!.to <= 18 * 60 ? 'Closed for the day.' : 'Closed for the night.';
-      next = nextOpening(m);
-      break;
-    case 'daytime':
-      kitchen = `Daytime menu, until ${clock(dayK!.to)}.`;
-      next = eveK
-        ? `Evening menu from ${clock(eveK.from)}`
-        : `Bar open until ${clock(hours!.to)}`;
-      break;
-    case 'between':
-      kitchen = 'Kitchen’s between menus. The bar is open.';
-      next = `Evening menu from ${clock(eveK!.from)}`;
-      break;
-    case 'evening':
-      kitchen = `Evening menu, until ${clock(eveK!.to)}.`;
-      next = `Bar open until ${clock(hours!.to)}`;
-      break;
-    case 'bar-only':
-      kitchen = 'Kitchen’s closed. The bar is open.';
-      next = `Doors close at ${clock(hours!.to)}`;
-      break;
-  }
-
-  const doors = open ? `Open until ${clock(hours!.to)}` : 'Closed';
-  const { board, later } = boardFor(menu, m, open);
+  if (!open) next = nextOpening(m).text;
+  else if (phase === 'daytime') next = eveK ? `Evening menu from ${clock(eveK.from)}` : `Bar until ${clock(hours!.to)}`;
+  else next = `Doors close at ${clock(hours!.to)}`;
 
   return {
     ...m,
@@ -223,48 +227,26 @@ export function stateAt(m: Moment): DayState {
     hours,
     menu,
     phase,
-    doors,
+    doors: open ? `Open until ${clock(hours!.to)}` : 'Closed',
     kitchen,
     next,
-    board,
-    later,
-    mood: moodFor(m.min, phase),
+    story: storyFor(m, phase, hours),
   };
 }
 
-/* Which menu tab makes sense to show first at this moment. */
-export function defaultMenu(m: Moment): MenuId {
-  const s = stateAt(m);
+/* Which menu to show first. */
+export function defaultMenu(s: DayState): MenuId {
   if (s.menu) return s.menu;
-  const eve = KITCHEN.evening[m.day];
-  if (s.phase === 'between' || s.phase === 'bar-only') return eve ? 'evening' : 'daytime';
+  if ((s.phase === 'between' || s.phase === 'bar') && KITCHEN.evening[s.day]) return 'evening';
   return 'daytime';
 }
 
-/* The bands drawn on the day scrubber for one day. */
-export type Band = { from: number; to: number; kind: 'daytime' | 'evening' | 'bar' | 'closed' };
-
-export function bandsFor(day: number): Band[] {
+/* Kitchen spans drawn along the day rail. */
+export function railSpans(day: number) {
   const hours = HOURS[day];
-  if (!hours) return [{ from: DAY_START, to: DAY_END, kind: 'closed' }];
-  const marks = new Set<number>([DAY_START, DAY_END, hours.from, hours.to]);
-  for (const id of ['daytime', 'evening'] as const) {
-    const k = KITCHEN[id][day];
-    if (k) {
-      marks.add(k.from);
-      marks.add(k.to);
-    }
-  }
-  const points = [...marks].filter((p) => p >= DAY_START && p <= DAY_END).sort((a, b) => a - b);
-  const bands: Band[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const from = points[i];
-    const to = points[i + 1];
-    const s = stateAt({ day, min: from });
-    const kind: Band['kind'] = !s.open ? 'closed' : s.menu ?? 'bar';
-    const last = bands[bands.length - 1];
-    if (last && last.kind === kind) last.to = to;
-    else bands.push({ from, to, kind });
-  }
-  return bands;
+  return {
+    hours,
+    daytime: KITCHEN.daytime[day],
+    evening: KITCHEN.evening[day],
+  };
 }

@@ -1,28 +1,23 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { londonNow, readAtParam, stateAt, type DayState, type Moment } from './time';
-import { applyPalette, paletteFor } from './palette';
+import { londonNow, readAt, stateAt, type DayState, type Moment } from './time';
+import { applyLight } from './light';
 
 type Clock = {
-  /* The real London time, or the ?at= override. */
+  /* London time now, or the ?at= override. */
   now: DayState;
-  /* What the page is showing: the scrubbed time, or now. */
+  /* What the page is showing: the moment picked on the day rail, or now. */
   view: DayState;
-  scrubbing: boolean;
-  demo: boolean;
-  setView: (m: Moment | null) => void;
+  picked: boolean;
+  pick: (m: Moment | null) => void;
 };
 
 const ClockContext = createContext<Clock | null>(null);
-
-const AT = readAtParam();
-
-export function initialMoment(): Moment {
-  return AT ?? londonNow();
-}
+const AT = readAt();
+export const startMoment = (): Moment => AT ?? londonNow();
 
 export function ClockProvider({ children }: { children: ReactNode }) {
-  const [nowMoment, setNow] = useState<Moment>(initialMoment);
-  const [scrub, setScrub] = useState<Moment | null>(null);
+  const [now, setNow] = useState<Moment>(startMoment);
+  const [picked, pick] = useState<Moment | null>(null);
 
   useEffect(() => {
     if (AT) return;
@@ -31,29 +26,23 @@ export function ClockProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Clock>(() => {
-    const now = stateAt(nowMoment);
-    const view = scrub ? stateAt(scrub) : now;
+    const nowState = stateAt(now);
+    const view = picked ? stateAt(picked) : nowState;
     return {
-      now,
+      now: nowState,
       view,
-      scrubbing: !!scrub && (scrub.day !== nowMoment.day || scrub.min !== nowMoment.min),
-      demo: !!AT,
-      setView: setScrub,
+      picked: !!picked && (picked.day !== now.day || picked.min !== now.min),
+      pick,
     };
-  }, [nowMoment, scrub]);
+  }, [now, picked]);
 
-  useEffect(() => {
-    applyPalette(paletteFor(value.view));
-    const root = document.documentElement;
-    root.dataset.lights = value.view.open ? 'on' : 'off';
-    root.dataset.hour = String(Math.floor(value.view.min / 60));
-  }, [value.view]);
+  useEffect(() => applyLight(value.view), [value.view]);
 
   return <ClockContext.Provider value={value}>{children}</ClockContext.Provider>;
 }
 
-export function useClock(): Clock {
+export function useClock() {
   const c = useContext(ClockContext);
-  if (!c) throw new Error('useClock outside ClockProvider');
+  if (!c) throw new Error('useClock needs ClockProvider');
   return c;
 }

@@ -1,31 +1,32 @@
 import { Link } from 'react-router-dom';
-import { HOURS_TEXT, SUPPLIERS, VENUE } from '../data/sessa';
+import { SUPPLIERS, VENUE } from '../data/sessa';
 import { Wordmark } from './Wordmark';
 
 export function Footer() {
   return (
     <footer className="footer">
       <div className="wrap">
-        <div className="footer-top">
+        <div className="footer-grid">
           <div>
-            <Wordmark decorative />
+            <div className="footer-mark">
+              <Wordmark />
+            </div>
             <p className="footer-line">{VENUE.line}.</p>
           </div>
           <div>
-            <h3>Visit</h3>
+            <h3 className="sc">Visit</h3>
             <ul>
+              <li>{VENUE.street}</li>
               <li>
-                {VENUE.street}, {VENUE.city} {VENUE.postcode}
+                {VENUE.area}, {VENUE.city} {VENUE.postcode}
               </li>
-              {HOURS_TEXT.map((h) => (
-                <li key={h.days}>
-                  {h.days}: {h.hours}
-                </li>
-              ))}
+              <li>Tue – Thu 9am – 10:30pm</li>
+              <li>Fri – Sat 9am – 11pm</li>
+              <li>Sun 9am – 3pm · Mon closed</li>
             </ul>
           </div>
           <div>
-            <h3>Say hello</h3>
+            <h3 className="sc">Get in touch</h3>
             <ul>
               <li>
                 <a href={VENUE.phoneHref}>{VENUE.phone}</a>
@@ -35,7 +36,7 @@ export function Footer() {
               </li>
               <li>
                 <a href={VENUE.instagramHref} target="_blank" rel="noopener">
-                  @sessa.london
+                  {VENUE.instagram}
                 </a>
               </li>
               <li>
@@ -44,7 +45,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h3>Supplied by</h3>
+            <h3 className="sc">From</h3>
             <ul>
               {SUPPLIERS.map((s) => (
                 <li key={s.who}>
@@ -54,11 +55,11 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        <div className="footer-bottom">
-          <span>Photography: Rob Greig</span>
+        <p className="footer-credits">
+          <span>Photography: Rob Greig and others</span>
           <span>Painting: Katia, 2023</span>
           <span>Site by AlexWilder-Dev</span>
-        </div>
+        </p>
       </div>
     </footer>
   );

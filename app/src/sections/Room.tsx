@@ -1,94 +1,50 @@
-import { PEOPLE, VENUE } from '../data/sessa';
+import { PEOPLE, ROOM, VENUE } from '../data/sessa';
 import { media } from '../lib/media';
-import { Reveal } from '../components/Reveal';
 
 export function Room() {
-  const [molly, edd, liv] = PEOPLE;
+  const { molly, edd, liv } = PEOPLE;
   return (
-    <section className="section room" id="room" aria-labelledby="room-title">
+    <section className="section room field" id="room" aria-labelledby="room-title">
       <div className="wrap">
         <div className="room-top">
-          <div className="room-intro">
-            <p className="label eyebrow">The room</p>
-            <h2 id="room-title" className="h-xl rough-lg">
-              “The little <br />
-              yellow bar”
+          <div>
+            <span className="eyebrow sc">The room</span>
+            <h2 id="room-title" className="display">
+              The little <em>yellow bar.</em>
             </h2>
-            <p className="room-said">That’s what customers call it.</p>
           </div>
-          <ul className="room-facts">
-            <li>
-              <b>Butter-yellow walls.</b>
-            </li>
-            <li>
-              <b>A brushed-steel-and-wood bar,</b> made for the room.
-            </li>
-            <li>
-              <b>Vintage furniture,</b> and bar chairs from the sisters’ grandparents’ house.
-            </li>
-            <li>
-              <b>The food on a handwritten chalkboard.</b> Candles at night.
-            </li>
-            <li>
-              <b>Open since {VENUE.opened}.</b>
-            </li>
-          </ul>
+          <p className="lede">
+            {ROOM.said} {ROOM.description} Open since {VENUE.opened}.
+          </p>
         </div>
-
         <div className="room-photos">
-          <Reveal className="room-photo room-photo-a">
-            <figure className="photo">
-              <img
-                src={media('photo-8.jpg')}
-                width={860}
-                height={600}
-                loading="lazy"
-                alt="An evening in the room: candles on dark wooden tables, a long bench, the kitchen pass behind"
-              />
-            </figure>
-          </Reveal>
-          <Reveal className="room-photo room-photo-b" delay={0.1}>
-            <figure className="photo">
-              <img
-                src={media('photo-7.jpg')}
-                width={860}
-                height={600}
-                loading="lazy"
-                alt="A wooden shelf on the yellow wall, lined with small clay vases of white flowers"
-              />
-            </figure>
-          </Reveal>
+          <figure className="photo a">
+            <img src={media('room-evening-860.jpg')} loading="lazy" alt="An evening at Sessa: candles on dark wooden tables, the long banquette, the kitchen pass behind" />
+          </figure>
+          <figure className="photo b">
+            <img src={media('kitchen-700.jpg')} loading="lazy" alt="Laughing in the open kitchen, pans hanging behind" />
+          </figure>
         </div>
 
         <div className="people">
-          <Reveal className="people-photo">
-            <figure className="photo">
-              <img
-                src={media('team.jpg')}
-                width={860}
-                height={600}
-                loading="lazy"
-                alt="Edd Clibbens, Molly Kyte and Liv Kyte at a table in Sessa, with a candle and drinks"
-              />
-              <figcaption>Edd Clibbens, Molly Kyte and Liv Kyte</figcaption>
-            </figure>
-          </Reveal>
-          <div className="people-copy">
-            <p className="label eyebrow">The people</p>
-            <h2 className="people-lines rough">
-              <span>
-                <b>Molly</b> {molly.does}.
-              </span>
-              <span>
-                <b>Edd</b> {edd.does}.
-              </span>
-              <span>
-                <b>Liv</b> {liv.does}.
-              </span>
-            </h2>
+          <figure>
+            <div className="photo">
+              <img src={media('team-860.jpg')} loading="lazy" alt="Edd Clibbens, Molly Kyte and Liv Kyte at a table in Sessa" />
+            </div>
+            <figcaption className="caption">
+              {edd.name}, {molly.name} and {liv.name}
+            </figcaption>
+          </figure>
+          <div>
+            <span className="eyebrow sc">The people</span>
+            <h3>
+              <span>Molly cooks.</span>
+              <span>Edd runs the drinks.</span>
+              <span>Liv runs the business.</span>
+            </h3>
             <p>
-              Sisters {molly.name} and {liv.name}, with Molly’s partner {edd.name}: general manager, wine and
-              cocktails, formerly of Forza Wine.
+              Sisters {molly.name} and {liv.name}, and Molly’s partner {edd.name}. The sisters also run Planted, the
+              catering company they’ve had for ten years, cooking for fashion, TV and film.
             </p>
           </div>
         </div>

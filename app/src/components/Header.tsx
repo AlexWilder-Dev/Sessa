@@ -6,138 +6,134 @@ import { useClock } from '../lib/clock';
 import { clock } from '../lib/time';
 import { Wordmark } from './Wordmark';
 
-const NAV = [
-  { to: '/menus', label: 'Menus', note: 'Daytime, evening, drinks' },
-  { to: '/wine', label: 'Wine', note: 'Find a bottle' },
-  { to: '/events', label: 'Events', note: 'Our bar, at yours' },
-  { to: '/jobs', label: 'Jobs', note: 'Chef de Partie' },
+const LINKS = [
+  { to: '/menus', label: 'Menus' },
+  { to: '/wine', label: 'Wine' },
+  { to: '/events', label: 'Events' },
+  { to: '/jobs', label: 'Jobs' },
 ];
 
-export function StatusText() {
-  const { now } = useClock();
-  const long = now.open ? `Open now, until ${clock(now.hours!.to)}` : `Closed. ${now.next ?? ''}`;
-  const short = now.open ? `Open till ${clock(now.hours!.to)}` : 'Closed now';
-  return (
-    <>
-      <span className={`status-dot ${now.open ? 'is-open' : ''}`} aria-hidden="true" />
-      <span className="status-long">{long}</span>
-      <span className="status-short">{short}</span>
-    </>
-  );
-}
-
 export function Header() {
-  const [scrolled, setScrolled] = useState(false);
+  const { now } = useClock();
+  const { pathname, key } = useLocation();
+  const [over, setOver] = useState(pathname === '/');
   const [open, setOpen] = useState(false);
-  const location = useLocation();
 
+  // Over the photograph on the home page, the header is see-through and butter.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    if (pathname !== '/') {
+      setOver(false);
+      return;
+    }
+    const onScroll = () => {
+      const hero = document.querySelector('.hero');
+      const limit = hero ? hero.getBoundingClientRect().bottom : 0;
+      setOver(limit > 72);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [pathname]);
 
-  useEffect(() => setOpen(false), [location.pathname, location.key]);
-
+  useEffect(() => setOpen(false), [pathname, key]);
   useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  const status = now.open ? `Open until ${clock(now.hours!.to)}` : 'Closed now';
+
   return (
     <>
-      <header className={`header ${scrolled ? 'is-scrolled' : ''}`}>
+      <header className={`header ${over ? 'is-over' : ''}`}>
         <div className="wrap">
           <Link to="/" className="header-mark" aria-label="Sessa, home">
-            <Wordmark variant="clean" decorative />
+            <Wordmark small />
           </Link>
-          <nav className="header-nav" aria-label="Main">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to}>
-                {({ isActive }) => (
-                  <>
-                    {n.label}
-                    {isActive && <m.span layoutId="nav-line" className="nav-line" />}
-                  </>
-                )}
+          <nav className="nav sc" aria-label="Main">
+            {LINKS.map((l) => (
+              <NavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? 'active' : '')}>
+                {l.label}
               </NavLink>
             ))}
             <Link to="/" state={{ scrollTo: 'find-us' }}>
               Find us
             </Link>
           </nav>
-          <p className="header-status" aria-live="polite">
-            <StatusText />
+          <p className="header-status sc">
+            <span className={`dot ${now.open ? 'on' : ''}`} aria-hidden="true" />
+            <span>
+              {status}
+              <span className="long">{now.open ? '' : ` · ${now.next}`}</span>
+            </span>
           </p>
-          <a className="btn btn-book header-book" href={VENUE.bookHref} target="_blank" rel="noopener">
+          <a className="pill header-book" href={VENUE.bookHref} target="_blank" rel="noopener">
             Book a table
           </a>
-          <button
-            className="header-more"
-            aria-expanded={open}
-            aria-controls="more-sheet"
-            onClick={() => setOpen(true)}
-          >
-            More
+          <button className="header-menu sc" aria-expanded={open} onClick={() => setOpen(true)}>
+            Menu
           </button>
         </div>
       </header>
 
       <AnimatePresence>
         {open && (
-          <>
-            <m.div
-              className="sheet-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-            />
-            <m.div
-              id="more-sheet"
-              className="sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label="More"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 380, damping: 38 }}
-            >
-              <button className="sheet-close" onClick={() => setOpen(false)} autoFocus>
+          <m.div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="sheet-top">
+              <Link to="/" className="header-mark" aria-label="Sessa, home">
+                <Wordmark small />
+              </Link>
+              <button className="sc" onClick={() => setOpen(false)} autoFocus>
                 Close
               </button>
-              <nav aria-label="More">
-                <Link to="/">
-                  Home <small>The little yellow bar</small>
+            </div>
+            <nav aria-label="Pages">
+              <Link to="/">Home</Link>
+              {LINKS.map((l) => (
+                <Link key={l.to} to={l.to}>
+                  {l.label}
                 </Link>
-                {NAV.map((n) => (
-                  <Link key={n.to} to={n.to}>
-                    {n.label} <small>{n.note}</small>
-                  </Link>
-                ))}
-                <Link to="/" state={{ scrollTo: 'find-us' }}>
-                  Find us <small>Hours, phone, email</small>
-                </Link>
-              </nav>
-              <p className="sheet-foot">
+              ))}
+              <Link to="/" state={{ scrollTo: 'find-us' }}>
+                Find us
+              </Link>
+            </nav>
+            <div className="sheet-foot">
+              <p>
+                {VENUE.street}, {VENUE.area} {VENUE.postcode}
+              </p>
+              <p>
                 <a className="link" href={VENUE.phoneHref}>
                   {VENUE.phone}
                 </a>{' '}
                 ·{' '}
                 <a className="link" href={`mailto:${VENUE.email}`}>
                   {VENUE.email}
-                </a>{' '}
-                ·{' '}
+                </a>
+              </p>
+              <p>
                 <a className="link" href={VENUE.instagramHref} target="_blank" rel="noopener">
                   Instagram
                 </a>
               </p>
-            </m.div>
-          </>
+            </div>
+          </m.div>
         )}
       </AnimatePresence>
     </>

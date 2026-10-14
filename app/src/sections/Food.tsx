@@ -1,74 +1,62 @@
 import { Link } from 'react-router-dom';
-import { DAYTIME_MENU, EVENING_MENU, KITCHEN_TEXT, type Dish, type MenuId } from '../data/sessa';
+import { DAYTIME_MENU, EVENING_MENU, QUOTES, type Dish, type MenuId } from '../data/sessa';
 import { useClock } from '../lib/clock';
 import { media } from '../lib/media';
-import { Reveal } from '../components/Reveal';
-import { Wordmark } from '../components/Wordmark';
 
-const MENUS: Record<MenuId, { title: string; dishes: Dish[] }> = {
-  daytime: { title: 'Daytime', dishes: DAYTIME_MENU.flat().filter((d) => d.board) },
-  evening: { title: 'Evening', dishes: EVENING_MENU.flat().filter((d) => d.board) },
-};
+const PICKS: { id: MenuId; title: string; hours: string; dishes: Dish[] }[] = [
+  { id: 'daytime', title: 'Daytime', hours: '9am – 3pm, Sundays till 2', dishes: DAYTIME_MENU.flat().filter((d) => d.feature) },
+  { id: 'evening', title: 'Evening', hours: '6pm – 9:30pm, Tuesday to Saturday', dishes: EVENING_MENU.flat().filter((d) => d.feature) },
+];
 
 export function Food() {
   const { now } = useClock();
   return (
-    <section className="section food" id="food" aria-labelledby="food-title">
-      <div className="wrap food-grid">
-        <Reveal className="food-photo">
-          <figure className="photo">
-            <img
-              src={media('photo-3.jpg')}
-              width={860}
-              height={600}
-              loading="lazy"
-              alt="In the kitchen: Parmesan grated over a plate of green dumplings, baguettes on the board behind"
-            />
+    <section className="section food field" id="food" aria-labelledby="food-title">
+      <div className="wrap">
+        <div className="food-photos">
+          <figure className="photo big">
+            <img src={media('saucisson-1200.jpg')} srcSet={`${media('saucisson-700.jpg')} 700w, ${media('saucisson-1200.jpg')} 1200w`} sizes="(min-width: 1000px) 45vw, 100vw" loading="lazy" alt="Saucisson and cornichons on a yellow plate, red wine, the red-splattered table" />
           </figure>
-        </Reveal>
-        <div className="food-copy">
-          <p className="label eyebrow">The food</p>
-          <h2 id="food-title" className="h-l rough">
-            Breakfast, lunch, <em>then small plates.</em>
-          </h2>
+          <figure className="photo small">
+            <img src={media('grating-700.jpg')} loading="lazy" alt="Cheese grated over a dish, tattooed hands, a navy work shirt" />
+          </figure>
+        </div>
+        <div>
+          <span className="eyebrow sc">The food</span>
+          <blockquote>
+            <p id="food-title" className="title">
+              “{QUOTES.mollyFood.text}”
+            </p>
+            <footer className="sc">Molly Kyte, on her cooking</footer>
+          </blockquote>
           <p className="lede">
-            Molly cooks a simple breakfast and lunch menu through the day, and seasonal small plates in the evening.
-            The menus change often; these are on now.
+            A simple breakfast and lunch through the day, seasonal small plates in the evening, and Toklas pastries in
+            the morning. The menus change often; this is what’s on now.
           </p>
-          <div className="menu-cards">
-            {(Object.keys(MENUS) as MenuId[]).map((id) => (
-              <Link
-                key={id}
-                to="/menus"
-                state={{ tab: id }}
-                className={`menu-card menu-card-${id} ${now.menu === id ? 'is-on' : ''}`}
-                aria-label={`${MENUS[id].title} menu`}
-              >
-                <span className="menu-card-top">
-                  <span className="menu-card-title">{MENUS[id].title} menu</span>
-                  <Wordmark variant="clean" decorative className="menu-card-mark" />
-                </span>
-                <span className="menu-card-hours">{KITCHEN_TEXT[id]}</span>
-                <span className="menu-card-list">
-                  {MENUS[id].dishes.map((d) => (
-                    <span key={d.name} className="menu-card-row">
+          <div className="menus-pair">
+            {PICKS.map((p) => (
+              <div key={p.id} className="menu-col">
+                <h3>
+                  {p.title}
+                  {now.menu === p.id && <em className="red">on now</em>}
+                </h3>
+                <p>{p.hours}</p>
+                <ul className="priced">
+                  {p.dishes.map((d) => (
+                    <li key={d.name}>
                       <span>
                         {d.name}
-                        {d.note && <small> ({d.note})</small>}
+                        {d.note && <small> {d.note}</small>}
                       </span>
                       <span>{d.price}</span>
-                    </span>
+                    </li>
                   ))}
-                </span>
-                <span className="menu-card-more">
-                  {now.menu === id ? <span className="chalk-tag">on now</span> : <span />}
-                  <span>Full menu →</span>
-                </span>
-              </Link>
+                </ul>
+              </div>
             ))}
           </div>
-          <Link className="btn btn-line" to="/menus">
-            All menus, and drinks <span className="arrow">→</span>
+          <Link className="pill" to="/menus">
+            The full menus
           </Link>
         </div>
       </div>
